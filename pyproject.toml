@@ -1,0 +1,47 @@
+[tool.poetry]
+name = "uniopt"
+version = "0.0.1"
+description = "A library with optimization algorithms"
+authors = ["EpicUTS"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pandas = "2.2.2"
+setuptools = "75.2.0"
+numpy = "2.1.2"
+
+[tool.poetry.dev-dependencies]
+pytest = "==8.2.2"
+flake8 = "==7.1.0"
+black = "==24.4.2"
+isort = "==5.13.2"
+sphinx = "==7.4.4"
+
+[tool.black]
+line-length = 79
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 79
+
+[tool.flake8]
+max-line-length = 79
+extend-ignore = ["E203", "W503"]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
