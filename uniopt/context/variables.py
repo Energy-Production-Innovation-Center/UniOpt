@@ -19,6 +19,7 @@ class Variables:
             raise ValueError(
                 f"Invalid {n_vars}. It should be integer and > 0."
             )
+        return n_vars
 
     def validate_input(self, input_values):
         if type(input_values) not in self.ALLOWED_INPUT_TYPE:
@@ -34,7 +35,7 @@ class Variables:
 
         return input_values
 
-    def set_variable_type(input_values):
+    def set_variable_type(self, input_values):
         var_type = None
         unique_values = np.unique(input_values)
 

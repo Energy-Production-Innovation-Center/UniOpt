@@ -1,13 +1,19 @@
 import random
 
+import numpy as np
+
 from uniopt.optimization.optimizer import BaseOptimizer
 
 
 class GAOptimizer(BaseOptimizer):
     def __init__(
-        self, problem, population_size=50, generations=100, mutation_rate=0.01
+        self,
+        optimization_context,
+        population_size=50,
+        generations=100,
+        mutation_rate=0.01,
     ):
-        super().__init__(problem, population_size, generations)
+        super().__init__(optimization_context, population_size, generations)
         self.mutation_rate = mutation_rate
 
     def before_initialization(self):
@@ -15,7 +21,7 @@ class GAOptimizer(BaseOptimizer):
 
     def initialization(self):
         for _ in range(self.population_size):
-            solution = self.problem.create_random_solution()
+            solution = self.optimization_context.generate_solution()
             self.population.append(solution)
 
     def after_initialization(self):
@@ -23,7 +29,8 @@ class GAOptimizer(BaseOptimizer):
 
     def evaluate_population(self):
         self.solutions = [
-            (sol, self.problem.evaluate(sol)) for sol in self.population
+            (sol, self.optimization_context.evaluate_solution(sol))
+            for sol in self.population
         ]
         self.solutions.sort(key=lambda x: x[1])
         self.best_solution, self.best_fitness = self.solutions[0]
@@ -36,13 +43,44 @@ class GAOptimizer(BaseOptimizer):
 
     def crossover(self, parent1, parent2):
         crossover_point = random.randint(1, len(parent1) - 1)
-        offspring = parent1[:crossover_point] + parent2[crossover_point:]
+        offspring = np.concatenate(
+            (parent1[:crossover_point], parent2[crossover_point:])
+        )
+
+        offspring = self.adjust_solution(offspring)
         return offspring
 
     def mutate(self, solution):
         for i in range(len(solution)):
             if random.random() < self.mutation_rate:
                 solution[i] = 1 - solution[i]
+
+        solution = self.adjust_solution(solution)
+        return solution
+
+    def adjust_solution(self, solution):
+        current_ones = np.sum(solution)
+
+        if current_ones > self.optimization_context.bounds.number_variables:
+            indices = np.where(solution == 1)[0]
+            indices_to_zero = np.random.choice(
+                indices,
+                current_ones
+                - self.optimization_context.bounds.number_variables,
+                replace=False,
+            )
+            solution[indices_to_zero] = 0
+
+        elif current_ones < self.optimization_context.bounds.number_variables:
+            indices = np.where(solution == 0)[0]
+            indices_to_one = np.random.choice(
+                indices,
+                self.optimization_context.bounds.number_variables
+                - current_ones,
+                replace=False,
+            )
+            solution[indices_to_one] = 1
+
         return solution
 
     def evolve(self):

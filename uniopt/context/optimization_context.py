@@ -39,7 +39,7 @@ class OptimizationContext:
         if not isinstance(bounds, Variables):
             raise TypeError("The bounds must be an instance of type Variables")
 
-        self.bounds = bounds
+        return bounds
 
     # TODO: Include the generation of other types
     def generate_solution(self):
@@ -48,7 +48,7 @@ class OptimizationContext:
         solution = []
 
         if self.permutation:
-            solution = self.bounds
+            solution = self.bounds.input_values
             solution = np.random.permutation(solution)
 
         return solution
@@ -56,11 +56,15 @@ class OptimizationContext:
     def set_seed(self, seed) -> None:
         """Set the seed for random number generation."""
 
+        seed_value = seed
         if seed is not None:
-            self.seed = seed
+            seed_value = seed
         else:
-            self.seed = int(time.time())
-        self.logger.log_info(f"Value set for seed: {self.seed}")
+            seed_value = int(time.time())
+
+        self.logger.log_info(f"Value set for seed: {seed_value}")
+
+        return seed_value
 
     def __set_functions(self):
         """Initialize objective function validation."""
@@ -68,7 +72,7 @@ class OptimizationContext:
         solution = self.generate_solution()
         result = self.obj_func(solution)
 
-        if isinstance(result, (tuple, list, np.ndarray)):
+        if isinstance(result, (tuple, list, np.ndarray, float, int)):
             result = np.array(result).flatten()
             self.validate_objective_function_result(result)
         else:
@@ -123,3 +127,6 @@ class OptimizationContext:
     def obj_func(self, x):
         """Objective function to be defined by subclasses"""
         raise NotImplementedError
+
+    def evaluate_solution(self, solution):
+        return self.obj_func(solution)

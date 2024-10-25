@@ -1,5 +1,7 @@
 import numpy as np
 
+from uniopt.logger import Logger
+
 
 class History:
     def __init__(self):
@@ -7,16 +9,18 @@ class History:
         self.best_fitness = []
         self.mean_fitness = []
         self.std_fitness = []
+        self.logger = Logger()
 
-    def append(self, best_solution, best_fitness, mean_fitness, std_fitness):
-        """Add a new entry to the history."""
-        self.log(best_solution, best_fitness, mean_fitness, std_fitness)
-
-    def log(self, best_solution, best_fitness, mean_fitness, std_fitness):
+    def append(self, best_solution, best_fitness):
         self.best_solutions.append(best_solution)
         self.best_fitness.append(best_fitness)
-        self.mean_fitness.append(mean_fitness)
-        self.std_fitness.append(std_fitness)
+
+    def log(self):
+
+        self.logger.info(
+            f"Best solution: {self.best_solutions}, "
+            f"Best_fitness: {self.best_fitness}"
+        )
 
     def get_history(self):
         return {
