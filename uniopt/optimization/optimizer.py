@@ -21,7 +21,7 @@ class BaseOptimizer:
         self.best_solution = None
         self.best_fitness = float("inf")
 
-        self.history = History(log_path=self.optimization_context.log_path)
+        self.history = History()
         self.logger = Logger()
         self.solutions = []
 
@@ -75,15 +75,17 @@ class BaseOptimizer:
         for generation in range(1, self.generations + 1):
             self.evolve()
 
-            self.logger.info(
+            self.logger.log_info(
                 f"Generation {generation}: Best fitness = {self.best_fitness}"
             )
 
             if self.check_stopping_criteria():
-                self.logger.info("Stopping criteria met, ending optimization.")
+                self.logger.log_info(
+                    "Stopping criteria met, ending optimization."
+                )
 
                 break
 
-            self.history.append(self.solutions)
+            self.history.append(self.best_solution, self.best_fitness)
 
-        return self.best_solution
+        return self.best_solution, self.best_fitness
