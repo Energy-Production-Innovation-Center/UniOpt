@@ -7,11 +7,15 @@ class LOCALOptimizer(BaseOptimizer):
     def __init__(
         self,
         optimization_context,
+        population_size=1,
+        generations=1,
         no_improve_num_max=None,
         no_improve_num_factor=5,
         swaps=4,
     ):
         super().__init__(optimization_context)
+        self.population_size = population_size
+        self.generations = generations
         self.models_num = len(self.optimization_context.bounds.input_values)
         self.rms_num = self.optimization_context.bounds.number_variables
         self.no_improve_num_max = no_improve_num_max
@@ -20,8 +24,8 @@ class LOCALOptimizer(BaseOptimizer):
         self.rng = np.random.default_rng(seed=self.optimization_context.seed)
 
     def initialization(self):
-        if self.no_improve_max is None:
-            self.no_improve_max = (
+        if self.no_improve_num_max is None:
+            self.no_improve_num_max = (
                 self.no_improve_num_factor
                 * (self.models_num - self.rms_num)
                 * (self.rms_num)
@@ -43,7 +47,7 @@ class LOCALOptimizer(BaseOptimizer):
 
     def evolve(self):
         model_pairs_num = range(self.swaps, 0, -1)
-        no_improve_swap_max = int(self.no_improve_max / self.swaps)
+        no_improve_swap_max = int(self.no_improve_num_max / self.swaps)
         no_improve_abs_count = 0
         iters_total_count = 0
 
@@ -59,7 +63,7 @@ class LOCALOptimizer(BaseOptimizer):
                         solution_candidate
                     )
                 )
-                self.solutions.append(solution_candidate, of_value_candidate)
+                self.solutions.append((solution_candidate, of_value_candidate))
                 if of_value_candidate < of_value:
                     solution = solution_candidate
                     of_value = of_value_candidate
