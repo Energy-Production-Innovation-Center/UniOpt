@@ -28,15 +28,15 @@ class BaseOptimizer:
     # TODO: Population/variables initialization
     def before_initialization(self):
         """Preparation before initializing the population."""
-        self.logger.info("Starting initialization phase.")
+        self.logger.log_info("Starting initialization phase.")
 
     def initialization(self):
         """Method to initialize the population."""
-        self.logger.info("Initializing population.")
+        self.logger.log_info("Initializing population.")
 
     def after_initialization(self):
         """Post-initialization steps."""
-        self.logger.info("Initialization complete.")
+        self.logger.log_info("Initialization complete.")
 
     def check_optimization_context(self, optimization_context):
         """Checks and sets the optimization context."""
