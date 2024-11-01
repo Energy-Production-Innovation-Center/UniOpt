@@ -17,7 +17,7 @@ class History:
 
     def log(self):
 
-        self.logger.info(
+        self.logger.log_info(
             f"Best solution: {self.best_solutions}, "
             f"Best_fitness: {self.best_fitness}"
         )
