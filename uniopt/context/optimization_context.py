@@ -32,6 +32,8 @@ class OptimizationContext:
         self.initial_solution = initial_solution
         self.logger = Logger()
         self.seed = self.set_seed(seed)
+        seed = self.seed + self.seed
+        self.rng = np.random.default_rng(seed=seed)
 
         self.__set_functions()
 
@@ -49,7 +51,7 @@ class OptimizationContext:
 
         if self.permutation:
             solution = self.bounds.input_values
-            solution = np.random.permutation(solution)
+            solution = self.rng.permutation(solution)
 
         return solution
 

@@ -1,5 +1,3 @@
-import random
-
 import numpy as np
 
 from uniopt.optimization.optimizer import BaseOptimizer
@@ -15,6 +13,8 @@ class GAOptimizer(BaseOptimizer):
     ):
         super().__init__(optimization_context, population_size, generations)
         self.mutation_rate = mutation_rate
+        seed = self.optimization_context.seed + self.population_size
+        self.rng = np.random.default_rng(seed=seed)
 
     def before_initialization(self):
         self.population = []
@@ -37,12 +37,13 @@ class GAOptimizer(BaseOptimizer):
 
     def select_parents(self):
         tournament_size = 3
-        tournament = random.sample(self.solutions, tournament_size)
+        tournament_idx = self.rng.choice(range(len(self.solutions)), tournament_size, replace=False)
+        tournament = [sol for idx, sol in enumerate(self.solutions) if idx in tournament_idx]
         tournament.sort(key=lambda x: x[1])
         return tournament[0][0], tournament[1][0]
 
     def crossover(self, parent1, parent2):
-        crossover_point = random.randint(1, len(parent1) - 1)
+        crossover_point = self.rng.integers(1, len(parent1))
         offspring = np.concatenate(
             (parent1[:crossover_point], parent2[crossover_point:])
         )
@@ -52,7 +53,7 @@ class GAOptimizer(BaseOptimizer):
 
     def mutate(self, solution):
         for i in range(len(solution)):
-            if random.random() < self.mutation_rate:
+            if self.rng.random() < self.mutation_rate:
                 solution[i] = 1 - solution[i]
 
         solution = self.adjust_solution(solution)
@@ -63,7 +64,7 @@ class GAOptimizer(BaseOptimizer):
 
         if current_ones > self.optimization_context.bounds.number_variables:
             indices = np.where(solution == 1)[0]
-            indices_to_zero = np.random.choice(
+            indices_to_zero = self.rng.choice(
                 indices,
                 current_ones
                 - self.optimization_context.bounds.number_variables,
@@ -73,7 +74,7 @@ class GAOptimizer(BaseOptimizer):
 
         elif current_ones < self.optimization_context.bounds.number_variables:
             indices = np.where(solution == 0)[0]
-            indices_to_one = np.random.choice(
+            indices_to_one = self.rng.choice(
                 indices,
                 self.optimization_context.bounds.number_variables
                 - current_ones,
