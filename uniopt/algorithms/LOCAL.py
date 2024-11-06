@@ -21,7 +21,8 @@ class LOCALOptimizer(BaseOptimizer):
         self.no_improve_num_max = no_improve_num_max
         self.no_improve_num_factor = no_improve_num_factor
         self.swaps = swaps
-        self.rng = np.random.default_rng(seed=self.optimization_context.seed)
+        seed = self.optimization_context.seed + self.population_size
+        self.rng = np.random.default_rng(seed=seed)
 
     def initialization(self):
         if self.no_improve_num_max is None:
