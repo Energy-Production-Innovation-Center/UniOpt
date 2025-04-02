@@ -1,24 +1,27 @@
-[tool.poetry]
+[project]
 name = "uniopt"
 version = "0.0.1"
 description = "A library with optimization algorithms"
-authors = ["EpicUTS"]
+authors = [{name = "EpicUTS", email = "cepuni02@unicamp.br"}]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-pandas = "2.2.2"
-setuptools = "75.2.0"
-numpy = ">=1.22,<2.1"
+requires-python = ">=3.10, <3.14"
 
-[tool.poetry.dev-dependencies]
-pytest = "==8.2.2"
-flake8 = "==7.1.0"
-black = "==24.4.2"
-isort = "==5.13.2"
-sphinx = "==7.4.4"
+dependencies = [
+    "pandas==2.2.3",
+    "setuptools==75.2.0",
+    "numpy >= 1.22,<2.1",
+    "psutil==6.1.1"
+]
+
+[tool.poetry.group.dev.dependencies]
+pytest = {version = "8.2.2"}
+flake8 = {version = "7.1.1"}
+black = {version = "24.8.0"}
+isort = {version = "5.13.2"}
+sphinx = {version = "7.4.4"}
 
 [tool.black]
-line-length = 79
+line-length = 100
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -36,10 +39,10 @@ exclude = '''
 
 [tool.isort]
 profile = "black"
-line_length = 79
+line_length = 100
 
 [tool.flake8]
-max-line-length = 79
+max-line-length = 100
 extend-ignore = ["E203", "W503"]
 
 [build-system]

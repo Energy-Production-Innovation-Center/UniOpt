@@ -2,7 +2,7 @@ from enum import Enum
 
 
 class VariableType(Enum):
-    INTEGERR = "INTEGER"
+    INTEGER = "INTEGER"
     FLOAT = "FLOAT"
     BINARY = "BINARY"
     STRING = "STRING"
