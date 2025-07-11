@@ -16,10 +16,8 @@ class History:
         self.best_fitness.append(best_fitness)
 
     def log(self):
-
         self.logger.log_info(
-            f"Best solution: {self.best_solutions}, "
-            f"Best_fitness: {self.best_fitness}"
+            f"Best solution: {self.best_solutions}, Best_fitness: {self.best_fitness}"
         )
 
     def get_history(self):

@@ -151,3 +151,9 @@ poetry.toml
 
 # LSP config files
 pyrightconfig.json
+
+# Task
+.task
+
+# VSCode
+.vscode

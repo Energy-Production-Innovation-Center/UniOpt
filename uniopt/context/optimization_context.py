@@ -1,14 +1,16 @@
 from abc import abstractmethod
 from time import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
-from numpy.random import Generator
 from numpy.typing import NDArray
 
 from uniopt.context.variables import Variables
 from uniopt.logger import Logger
 from uniopt.utils.custom_types import ResultsType, SolutionType
+
+if TYPE_CHECKING:
+    from numpy.random import Generator
 
 
 class OptimizationContext:
@@ -22,7 +24,7 @@ class OptimizationContext:
     )
     ALLOWED_OF_RESULTS: tuple[type, type, type] = (int, float, np.float64)
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         bounds: Any,
         target: str = "min",

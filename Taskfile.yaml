@@ -1,0 +1,88 @@
+version: 3
+
+# Environment Variables.
+env:
+  # Enable Docker multi stage builds.
+  DOCKER_BUILDKIT: 1
+
+# Global Variables.
+vars:
+  # Output dir is where all generated artifacts go.
+  OUT_DIR: ./out
+  # Report dir is where all reports goes (lint, test results).
+  REPORT_DIR: "{{.OUT_DIR}}/report"
+  # Application version.
+  APP_VERSION:
+    sh: ./scripts/version.sh
+
+# Task Definitions.
+tasks:
+  install:
+    desc: Set up conda environment for local development.
+    platforms: [linux]
+    run: once
+    vars:
+      ENV_NAME:
+        sh: basename "$PWD"
+    status:
+      - conda info --envs | grep -Eq "\b{{.ENV_NAME}}\b"
+    sources:
+      - pyproject.toml
+    cmds:
+      - scripts/conda.sh
+
+  format:check:
+    desc: Check code style.
+    platforms: [linux]
+    cmds:
+      - scripts/conda.sh ruff format --diff
+
+  format:fix:
+    desc: Fix code style.
+    platforms: [linux]
+    cmds:
+      - scripts/conda.sh ruff format
+
+  lint:check:
+    desc: Analyze code to flag potential problems.
+    platforms: [linux]
+    cmds:
+      - task: install
+      - scripts/conda.sh ruff check
+
+  lint:fix:
+    desc: Analyze code and try to fix potential problems.
+    platforms: [linux]
+    cmds:
+      - task: install
+      - scripts/conda.sh ruff check --fix --unsafe-fixes
+
+  type:check:
+    desc: Analyze code to ensure correct use of variables and functions types.
+    cmds:
+      - >
+        docker build .
+        --target type
+        --output {{.REPORT_DIR}}
+        --build-arg APP_VERSION={{.APP_VERSION}}
+      - cmd: cat {{.REPORT_DIR}}/type_check.txt
+        platforms: [linux]
+      - cmd: cat {{.REPORT_DIR}}/type_check.txt | grep -q 'All checks passed!'
+        platforms: [linux]
+
+  check:
+    desc: Run code analysis for formatting, linting and typing.
+    platforms: [linux]
+    cmds:
+      - task: install
+      - task: format:check
+      - task: lint:check
+      - task: type:check
+
+  fix:
+    desc: Try to fix potential problems and code style.
+    platforms: [linux]
+    cmds:
+      - task: install
+      - task: format:fix
+      - task: lint:fix
