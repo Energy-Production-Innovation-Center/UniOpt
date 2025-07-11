@@ -18,8 +18,7 @@ class Variables:
     def set_n_vars(self, n_vars: Any) -> int:
         if type(n_vars) is int and n_vars > 0:
             return n_vars
-        else:
-            raise ValueError(f"Invalid {n_vars}. It should be integer and > 0.")
+        raise ValueError(f"Invalid {n_vars}. It should be integer and > 0.")
 
     def validate_input(self, input_values: Any) -> NDArray[np.bool]:
         if type(input_values) not in self.ALLOWED_INPUT_TYPE:
@@ -28,7 +27,7 @@ class Variables:
         if not isinstance(input_values, np.ndarray):
             input_values = np.array(input_values)
 
-        cast_values = cast(NDArray[np.bool], input_values)
+        cast_values = cast("NDArray[np.bool]", input_values)
         if cast_values.size == 0:
             raise ValueError("Empty input value")
 

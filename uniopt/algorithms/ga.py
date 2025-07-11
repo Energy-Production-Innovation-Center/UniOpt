@@ -29,8 +29,7 @@ class GAOptimizer(BaseOptimizer):
 
     def evaluate_population(self):
         self.solutions = [
-            (sol, self.optimization_context.evaluate_solution(sol))
-            for sol in self.population
+            (sol, self.optimization_context.evaluate_solution(sol)) for sol in self.population
         ]
         self.solutions.sort(key=lambda x: x[1])
         self.best_solution, self.best_fitness = self.solutions[0]
@@ -44,20 +43,16 @@ class GAOptimizer(BaseOptimizer):
 
     def crossover(self, parent1, parent2):
         crossover_point = self.rng.integers(1, len(parent1))
-        offspring = np.concatenate(
-            (parent1[:crossover_point], parent2[crossover_point:])
-        )
+        offspring = np.concatenate((parent1[:crossover_point], parent2[crossover_point:]))
 
-        offspring = self.adjust_solution(offspring)
-        return offspring
+        return self.adjust_solution(offspring)
 
     def mutate(self, solution):
         for i in range(len(solution)):
             if self.rng.random() < self.mutation_rate:
                 solution[i] = 1 - solution[i]
 
-        solution = self.adjust_solution(solution)
-        return solution
+        return self.adjust_solution(solution)
 
     def adjust_solution(self, solution):
         current_ones = np.sum(solution)
@@ -66,8 +61,7 @@ class GAOptimizer(BaseOptimizer):
             indices = np.where(solution == 1)[0]
             indices_to_zero = self.rng.choice(
                 indices,
-                current_ones
-                - self.optimization_context.bounds.number_variables,
+                current_ones - self.optimization_context.bounds.number_variables,
                 replace=False,
             )
             solution[indices_to_zero] = 0
@@ -76,8 +70,7 @@ class GAOptimizer(BaseOptimizer):
             indices = np.where(solution == 0)[0]
             indices_to_one = self.rng.choice(
                 indices,
-                self.optimization_context.bounds.number_variables
-                - current_ones,
+                self.optimization_context.bounds.number_variables - current_ones,
                 replace=False,
             )
             solution[indices_to_one] = 1

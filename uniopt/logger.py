@@ -13,7 +13,6 @@ class LoggerSingleton(type):
 
 
 class Logger(metaclass=LoggerSingleton):
-
     def __init__(self, log_console: bool = True, log_file: bool = False, level: int = logging.INFO):
         self.log_console: bool = log_console
         self.log_file: bool = log_file

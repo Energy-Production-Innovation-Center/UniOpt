@@ -53,11 +53,13 @@ class BaseOptimizer(ABC):
         if isinstance(optimization_context, OptimizationContext):
             pass
         elif isinstance(optimization_context, dict):
-            optimization_context = OptimizationContext(**cast(dict[str, Any], optimization_context))
+            optimization_context = OptimizationContext(  # type: ignore
+                **cast("dict[str, Any]", optimization_context)
+            )
         else:
             raise ValueError(
                 "The optimization context must be a dictionary or an instance of "
-                + "OptimizationContext"
+                "OptimizationContext"
             )
 
         return optimization_context
@@ -81,8 +83,7 @@ class BaseOptimizer(ABC):
         self.after_initialization()
 
         for generation in range(1, self.generations + 1):
-            for results in self.evolve():
-                yield results
+            yield from self.evolve()
 
             self._logger.log_info(f"Generation {generation}: Best fitness = {self.best_fitness}")
 

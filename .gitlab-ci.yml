@@ -1,0 +1,83 @@
+# Gitlab Continuous Integration / Delivery / Deployment configuration.
+# Ref: https://docs.gitlab.com/ee/ci/
+
+default:
+  tags: [linux]
+  before_script:
+    - apk --no-cache add bash coreutils curl jq go-task
+  interruptible: true
+
+variables:
+  OUT_DIR: "out"
+  REPORT_DIR: "$OUT_DIR/report"
+
+stages:
+  - verify
+  - analyze
+  - test
+  - release
+
+workflow:
+  rules:
+    - if: $CI_MERGE_REQUEST_IID
+    - if: $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+include:
+  - template: Jobs/SAST.latest.gitlab-ci.yml
+  - template: Jobs/SAST-IaC.latest.gitlab-ci.yml
+  - template: Jobs/Secret-Detection.latest.gitlab-ci.yml
+
+kics-iac-sast:
+  stage: analyze
+
+secret_detection:
+  stage: analyze
+
+semgrep-sast:
+  stage: analyze
+
+.base_ruff:
+  stage: verify
+  image:
+    name: ghcr.io/astral-sh/ruff:0.12.2-alpine
+  before_script:
+    - cd $CI_PROJECT_DIR
+
+format:
+  extends: .base_ruff
+  timeout: 5m
+  script:
+    - ruff format --diff
+
+lint:
+  extends: .base_ruff
+  timeout: 15m
+  script:
+    - ruff check || true
+    - ruff check --output-format=gitlab > code-quality-report.json
+  artifacts:
+    reports:
+      codequality: $CI_PROJECT_DIR/code-quality-report.json
+
+type:
+  stage: verify
+  timeout: 20m
+  resource_group: docker-uniopt
+  script:
+    - go-task type:check
+
+release:
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  stage: release
+  timeout: 10m
+  rules:
+    - if: $CI_COMMIT_TAG
+  release:
+    tag_name: $CI_COMMIT_TAG
+    description: $CI_COMMIT_TAG_MESSAGE
+    ref: $CI_COMMIT_SHA
+  script:
+    - echo "running release job"

@@ -1,50 +1,47 @@
 [project]
-name = "uniopt"
-version = "0.0.1"
-description = "A library with optimization algorithms"
-authors = [{name = "EpicUTS", email = "cepuni02@unicamp.br"}]
+name            = "uniopt"
+description     = "A library with optimization algorithms"
+authors         = [{ name = "EpicUTS", email = "cepuni02@unicamp.br" }]
+dynamic         = ["version"]
+requires-python = ">=3.12, <3.14"
 
-requires-python = ">=3.10, <3.14"
+dependencies = ["numpy", "psutil==7.0.0"]
 
-dependencies = [
-    "pandas==2.2.3",
-    "setuptools==75.2.0",
-    "numpy >= 1.22,<2.1",
-    "psutil==6.1.1"
+[project.optional-dependencies]
+# Local development dependencies
+dev = ["ruff==0.12.2"]
+# Continuous integration dependencies
+ci = ["ty==0.0.1a13"]
+
+[tool.ruff]
+indent-width = 4
+line-length  = 100
+src          = ["uniopt"]
+
+[tool.ruff.lint]
+select = [
+  "A",   # Detect shadowed builtins
+  "B",   # flake8-bugbear
+  "C4",  # Catch incorrect use of comprehensions, dict, list, etc
+  "E",   # PyCodeStyle errors
+  "F",   # Pyflakes rules
+  "FA",  # Enforce from __future__ import annotations
+  "G",   # Better usage of built-in logging
+  "I",   # Sort imports properly
+  "ICN", # Use common import conventions
+  "ISC", # Good use of string concatenation
+  "LOG", # Checks for issues using the standard library logging module.
+  "N",   # Enforce naming conventions, e.g. ClassName vs function_name
+  "NPY", # Some numpy-specific things
+  "PL",  # PyLint
+  "PTH", # Use pathlib instead of os.path
+  "PYI", # Linting rules for type annotations.
+  "Q",   # Linting rules for quotes
+  "RET", # Good return practices
+  "RUF", # Ruff lint
+  "SIM", # Common simplification rules
+  "TC",  # Enforce importing certain types in a TYPE_CHECKING block
+  "TID", # Some good import practices
+  "UP",  # Warn if certain things can changed due to newer Python versions
+  "W",   # PyCodeStyle warnings
 ]
-
-[tool.poetry.group.dev.dependencies]
-pytest = {version = "8.2.2"}
-flake8 = {version = "7.1.1"}
-black = {version = "24.8.0"}
-isort = {version = "5.13.2"}
-sphinx = {version = "7.4.4"}
-
-[tool.black]
-line-length = 100
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-)/
-'''
-
-[tool.isort]
-profile = "black"
-line_length = 100
-
-[tool.flake8]
-max-line-length = 100
-extend-ignore = ["E203", "W503"]
-
-[build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"

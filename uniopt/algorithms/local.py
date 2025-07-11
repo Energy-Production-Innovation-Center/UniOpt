@@ -2,22 +2,24 @@ import time
 from collections.abc import Generator
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import Manager, cpu_count, get_start_method
-from queue import Queue
-from typing import Any, Literal, cast, override
+from typing import TYPE_CHECKING, Any, Literal, cast, override
 
 import numpy as np
 from numpy.random import Generator as RandomGenerator
 from psutil import Process, virtual_memory
 
 from uniopt.context.optimization_context import OptimizationContext
-from uniopt.logger import Logger
 from uniopt.optimization.optimizer import BaseOptimizer
 from uniopt.utils.custom_types import ResultsType, SolutionType
 
+if TYPE_CHECKING:
+    from queue import Queue
+
+    from uniopt.logger import Logger
+
 
 class LOCALOptimizer(BaseOptimizer):
-
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         optimization_context: OptimizationContext,
         population_size: int = 1,
@@ -71,14 +73,14 @@ class LOCALOptimizer(BaseOptimizer):
         if self.n_swaps > self.rms_num:
             self._logger.log_warning(
                 f"Number of swaps ({self.n_swaps}) is higher than RMs ({self.rms_num}), "
-                + " using latter"
+                " using latter"
             )
             self.n_swaps = self.rms_num
         n_cpu = cpu_count()
         if self.n_processes > n_cpu:
             self._logger.log_warning(
                 f"Configured number of processes ({self.n_processes}) is higher than CPU count "
-                + f"({n_cpu}), this is not recommended"
+                f"({n_cpu}), this is not recommended"
             )
 
     def _swap(self, array: SolutionType, swap_n: int) -> SolutionType:
@@ -105,7 +107,7 @@ class LOCALOptimizer(BaseOptimizer):
             if not self._solution_exists(array):
                 break
 
-            if time.time() - start_time > 60:
+            if time.time() - start_time > 60:  # noqa: PLR2004
                 raise TimeoutError("Execution exceeded the time limit for generating solutions")
         return array
 
@@ -145,7 +147,7 @@ class LOCALOptimizer(BaseOptimizer):
         """
         if self.n_swaps > 0:
             return list(range(1, self.n_swaps + 1))
-        elif self.n_swaps < 0:
+        if self.n_swaps < 0:
             return list(range(abs(self.n_swaps), 0, -1))
         raise ValueError("Cannot perform zero swaps")
 
@@ -189,7 +191,7 @@ class LOCALOptimizer(BaseOptimizer):
         no_improve_swap_max = round(no_improve_swap_max)
         self._logger.log_debug(
             f"Swap {swap_n} stopping criterion: {no_improve_swap_max} iterations without "
-            + "improvement"
+            "improvement"
         )
         return no_improve_swap_max
 
@@ -228,8 +230,7 @@ class LOCALOptimizer(BaseOptimizer):
         """
         if get_start_method() == "spawn":
             return ((3 * self.models_num / 4) + 998.25) / 999
-        else:
-            return 0.6  # fork() uses Copy-on-Write, memory usage is basically constant
+        return 0.6  # fork() uses Copy-on-Write, memory usage is basically constant
 
     def _check_available_memory(self, pool: ProcessPoolExecutor) -> Literal[-1, 0, 1]:
         """Check whether the host machine has enough memory to continue the optimization methods.
@@ -244,19 +245,19 @@ class LOCALOptimizer(BaseOptimizer):
             Literal[-1, 0, 1]: `-1` if multiprocessing level should decrease, `0` if it should
             remain the same, `1` if it should increase.
         """
-        used_percent = float(getattr(virtual_memory(), "percent"))
-        if used_percent >= 99:
+        used_percent = float(virtual_memory().percent)
+        if used_percent >= 99:  # noqa: PLR2004
             self._logger.log_error("Memory usage is above 99%, aborting!")
             for process in pool._processes.values():
                 process.kill()
             pool.shutdown(cancel_futures=True)
             raise MemoryError(
                 "No available memory to continue, consider lowering "
-                + "'optimization_method/n_processes' value"
+                "'optimization_method/n_processes' value"
             )
-        elif used_percent >= 90:
+        if used_percent >= 90:  # noqa: PLR2004
             return -1
-        elif used_percent <= 50:
+        if used_percent <= 50:  # noqa: PLR2004
             return 1
         return 0
 
@@ -297,13 +298,12 @@ class LOCALOptimizer(BaseOptimizer):
             generator = self._evolve_multi()
             # Overwrite thread-safe objects by the shared ones
             manager = Manager()
-            self._solutions_dict = cast(dict[bytes, int], cast(object, manager.dict()))
+            self._solutions_dict = cast("dict[bytes, int]", cast("object", manager.dict()))
             self._shared_queue = manager.Queue()
         else:
             generator = self._evolve_single()
 
-        for results in generator:
-            yield results
+        yield from generator
 
         self._log_total_skipped()
         self.solutions.sort(key=lambda x: x[1])
@@ -374,8 +374,7 @@ class LOCALOptimizer(BaseOptimizer):
 
             # Those are then used as initial solutions to local_search()
             self._logger.log_info(f"Starting optimization using {self.n_processes} processes")
-            for results in self._local_search_multi(global_pool, best_solutions, global_context):
-                yield results
+            yield from self._local_search_multi(global_pool, best_solutions, global_context)
 
     def _temperature(
         self, repeat_n: int = 10
@@ -406,7 +405,9 @@ class LOCALOptimizer(BaseOptimizer):
             self._logger.log_debug(str(ex))
 
     def _temperature_multi(
-        self, global_pool: ProcessPoolExecutor, global_context: dict[str, Any] | None = None
+        self,
+        global_pool: ProcessPoolExecutor,
+        global_context: dict[str, Any] | None = None,
     ) -> Generator[tuple[list[tuple[SolutionType, np.float64]] | None, ResultsType | None]]:
         """Run the pre-optimization method using multiple processes.
 
@@ -551,12 +552,20 @@ class LOCALOptimizer(BaseOptimizer):
             # Consider the initial solutions when spawning new processes
             no_improve_swap_max = self._get_no_improve_swap_max(swap_n)
             args: list[
-                tuple[int, int, SolutionType, np.float64, RandomGenerator, dict[str, Any] | None]
+                tuple[
+                    int,
+                    int,
+                    SolutionType,
+                    np.float64,
+                    RandomGenerator,
+                    dict[str, Any] | None,
+                ]
             ] = []
             for i in range(self.n_processes):
                 if i + 1 < len(initial_solutions):
                     self._logger.log_debug(
-                        f"Spawning process {i+1} from good solution: {initial_solutions[i][1]:.5f}"
+                        f"Spawning process {i + 1} from good solution: "
+                        f"{initial_solutions[i][1]:.5f}"
                     )
                     args.append(
                         (
@@ -570,10 +579,17 @@ class LOCALOptimizer(BaseOptimizer):
                     )
                 else:
                     self._logger.log_debug(
-                        f"Spawning process {i+1} from best solution: {best_of:.5f}"
+                        f"Spawning process {i + 1} from best solution: {best_of:.5f}"
                     )
                     args.append(
-                        (no_improve_swap_max, swap_n, best_sol, best_of, seeds[i], global_context)
+                        (
+                            no_improve_swap_max,
+                            swap_n,
+                            best_sol,
+                            best_of,
+                            seeds[i],
+                            global_context,
+                        )
                     )
 
             with ProcessPoolExecutor() as local_pool:
