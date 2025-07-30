@@ -13,12 +13,22 @@ vars:
   REPORT_DIR: "{{.OUT_DIR}}/report"
   # Application version.
   APP_VERSION:
-    sh: ./scripts/version.sh
+    sh: |
+      if [ "{{OS}}" = "linux" ]; then
+        ./scripts/version.sh
+      fi
 
 # Task Definitions.
 tasks:
   install:
     desc: Set up conda environment for local development.
+    platforms: [linux, windows]
+    deps:
+      - task: install:linux
+      - task: install:windows
+
+  install:linux:
+    internal: true
     platforms: [linux]
     run: once
     vars:
@@ -31,31 +41,99 @@ tasks:
     cmds:
       - scripts/conda.sh
 
+  install:windows:
+    internal: true
+    platforms: [windows]
+    run: once
+    vars:
+      ENV_NAME:
+        sh: python scripts\\get_env_name.py
+    status:
+      - conda info --envs | findstr "{{.ENV_NAME}}"
+    sources:
+      - pyproject.toml
+    cmds:
+      - scripts\\conda.bat
+
   format:check:
     desc: Check code style.
+    platforms: [linux, windows]
+    deps:
+      - task: format:check:linux
+      - task: format:check:windows
+
+  format:check:linux:
+    internal: true
     platforms: [linux]
     cmds:
       - scripts/conda.sh ruff format --diff
 
+  format:check:windows:
+    internal: true
+    platforms: [windows]
+    cmds:
+      - scripts\\conda.bat ruff format --diff
+
   format:fix:
     desc: Fix code style.
+    platforms: [linux, windows]
+    deps:
+      - task: format:fix:linux
+      - task: format:fix:windows
+
+  format:fix:linux:
+    internal: true
     platforms: [linux]
     cmds:
       - scripts/conda.sh ruff format
 
+  format:fix:windows:
+    internal: true
+    platforms: [windows]
+    cmds:
+      - scripts\\conda.bat ruff format
+
   lint:check:
     desc: Analyze code to flag potential problems.
+    platforms: [linux, windows]
+    deps:
+      - task: lint:check:linux
+      - task: lint:check:windows
+
+  lint:check:linux:
+    internal: true
     platforms: [linux]
     cmds:
-      - task: install
+      - task: install:linux
       - scripts/conda.sh ruff check
+
+  lint:check:windows:
+    internal: true
+    platforms: [windows]
+    cmds:
+      - task: install:windows
+      - scripts\\conda.bat ruff check
 
   lint:fix:
     desc: Analyze code and try to fix potential problems.
+    platforms: [linux, windows]
+    deps:
+      - task: lint:fix:linux
+      - task: lint:fix:windows
+
+  lint:fix:linux:
+    internal: true
     platforms: [linux]
     cmds:
-      - task: install
+      - task: install:linux
       - scripts/conda.sh ruff check --fix --unsafe-fixes
+
+  lint:fix:windows:
+    internal: true
+    platforms: [windows]
+    cmds:
+      - task: install:windows
+      - scripts\\conda.bat ruff check --fix --unsafe-fixes
 
   type:check:
     desc: Analyze code to ensure correct use of variables and functions types.

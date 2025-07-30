@@ -3,20 +3,20 @@ name            = "uniopt"
 description     = "A library with optimization algorithms"
 authors         = [{ name = "EpicUTS", email = "cepuni02@unicamp.br" }]
 dynamic         = ["version"]
-requires-python = ">=3.12, <3.14"
+requires-python = ">=3.12, <3.13"
 
-dependencies = ["numpy", "psutil==7.0.0"]
+dependencies = ["numpy", "psutil"]
 
 [project.optional-dependencies]
 # Local development dependencies
-dev = ["ruff==0.12.2"]
+dev = ["ruff"]
 # Continuous integration dependencies
-ci = ["ty==0.0.1a13"]
+ci = ["ty"]
 
 [tool.ruff]
 indent-width = 4
 line-length  = 100
-src          = ["uniopt"]
+src          = ["uniopt", "scripts"]
 
 [tool.ruff.lint]
 select = [
