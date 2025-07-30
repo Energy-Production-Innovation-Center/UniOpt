@@ -30,7 +30,7 @@ repos:
             name: check code style
             stages: [pre-commit]
             language: system
-            entry: sh -c "go-task format:check || task format:check"
+            entry: sh -c "task format:check || go-task format:check"
 
     - repo: local
       hooks:
@@ -38,7 +38,7 @@ repos:
             name: check linting problems
             stages: [pre-commit]
             language: system
-            entry: sh -c "go-task lint:check || task lint:check"
+            entry: sh -c "task lint:check || go-task lint:check"
 
     - repo: local
       hooks:
@@ -46,4 +46,4 @@ repos:
             name: check typing problems
             stages: [pre-commit]
             language: system
-            entry: sh -c "go-task type:check || task type:check"
+            entry: sh -c "task type:check || go-task type:check"

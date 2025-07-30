@@ -157,3 +157,6 @@ pyrightconfig.json
 
 # VSCode
 .vscode
+
+# Output
+out/

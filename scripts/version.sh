@@ -15,8 +15,9 @@ get_development_version() {
 
 get_stable_version() {
     last_release=$(get_last_release)
-    now=$(date +%y%m%d%H%M%S)
-    echo $(set_timestamp "${last_release}" "${now}")
+    commit_date=$(git log -1 --pretty=format:%cI)
+    commit_date=$(date -d"${commit_date}" +%y%m%d%H%M%S)
+    echo $(set_timestamp "${last_release}" "${commit_date}")
 }
 
 get_next_milestone() {
@@ -113,18 +114,19 @@ set_label() {
     fi
 }
 
-if grep -q -E "(^|\s)main($|\s)" <<<"$(get_current_branch)"; then
-    if [[ -z "${CI_COMMIT_TAG}" ]]; then
+
+if [[ -z "${CI_COMMIT_TAG}" ]]; then
+    if [[ ${CI_COMMIT_REF_NAME} == "main" || $(get_current_branch) == "main" ]]; then
         get_stable_version
     else
-        if is_stable_version "${CI_COMMIT_TAG}"; then
-            echo "${CI_COMMIT_TAG}"
-            exit 0
-        else
-            echo "Invalid version format from enviroment variable 'CI_COMMIT_TAG': ${CI_COMMIT_TAG}"
-            exit 1
-        fi
+        get_development_version
     fi
 else
-    get_development_version
+    if is_stable_version "${CI_COMMIT_TAG}"; then
+        echo "${CI_COMMIT_TAG}"
+        exit 0
+    else
+        echo >&2 "Invalid version format from enviroment variable 'CI_COMMIT_TAG': ${CI_COMMIT_TAG}"
+        exit 1
+    fi
 fi

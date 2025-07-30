@@ -1,8 +1,6 @@
 # Target environment for Linux.
 FROM rockylinux:9 AS target-linux
 WORKDIR /repo
-ARG APP_VERSION
-RUN echo $APP_VERSION > .version
 
 # Install required packages.
 COPY --chmod=0755 scripts/target.sh .
@@ -15,7 +13,10 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     --mount=source=uniopt,target=/repo/uniopt,rw \
     python -m venv .venv \
     && source .venv/bin/activate \
-    && python -m pip install -e .[ci]
+    && python -m pip install --upgrade -e .[ci]
+# Set project version
+ARG APP_VERSION
+RUN echo $APP_VERSION > .version
 
 # Type checking.
 FROM ci AS type-checker
