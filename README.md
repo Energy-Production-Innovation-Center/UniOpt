@@ -1,13 +1,8 @@
 # UniOpt
 
-[[_TOC_]]
-
 ## Local development
 
 The [Task](https://taskfile.dev/) tool provides an easy way to automatize the whole development process.
-
-> [!warning]
-> On Windows some commands may not be available. You can check the `Taskfile.yaml` file for more details on how to run them manually.
 
 ### Requirements
 Make sure you have the following tools installed:
