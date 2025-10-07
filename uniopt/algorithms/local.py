@@ -2,11 +2,12 @@ import time
 from collections.abc import Generator
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import Manager, cpu_count, get_start_method
-from typing import TYPE_CHECKING, Any, Literal, cast, override
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import numpy as np
 from numpy.random import Generator as RandomGenerator
 from psutil import Process, virtual_memory
+from typing_extensions import override
 
 from uniopt.context.optimization_context import OptimizationContext
 from uniopt.optimization.optimizer import BaseOptimizer
