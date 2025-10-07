@@ -3,9 +3,9 @@ name            = "uniopt"
 description     = "A library with optimization algorithms"
 authors         = [{ name = "EpicUTS", email = "cepuni02@unicamp.br" }]
 dynamic         = ["version"]
-requires-python = ">=3.12, <3.13"
+requires-python = ">=3.11, <3.13"
 
-dependencies = ["numpy", "psutil"]
+dependencies = ["numpy", "psutil", "typing-extensions>=4.9.0"]
 
 [project.optional-dependencies]
 # Local development dependencies
