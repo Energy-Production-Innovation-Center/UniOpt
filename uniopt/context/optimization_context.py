@@ -61,7 +61,7 @@ class OptimizationContext:
     def generate_solution(self) -> SolutionType:
         """Generate a random solution based on bounds."""
         if self.permutation:
-            solution = self.bounds.input_values.astype(np.bool)
+            solution = self.bounds.input_values.astype(np.bool_)
             solution = self.rng.permutation(solution)
         else:
             solution = SolutionType([])

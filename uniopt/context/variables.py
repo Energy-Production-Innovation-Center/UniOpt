@@ -12,7 +12,7 @@ class Variables:
     # TODO: Include lower and upper input
     def __init__(self, number_variables: Any, input_values: Any):
         self.number_variables: int = self.set_n_vars(number_variables)
-        self.input_values: NDArray[np.bool] = self.validate_input(input_values)
+        self.input_values: NDArray[np.bool_] = self.validate_input(input_values)
         self.var_type: VariableType = self.set_variable_type(input_values)
 
     def set_n_vars(self, n_vars: Any) -> int:
@@ -20,22 +20,22 @@ class Variables:
             return n_vars
         raise ValueError(f"Invalid {n_vars}. It should be integer and > 0.")
 
-    def validate_input(self, input_values: Any) -> NDArray[np.bool]:
+    def validate_input(self, input_values: Any) -> NDArray[np.bool_]:
         if type(input_values) not in self.ALLOWED_INPUT_TYPE:
             raise ValueError(f"The type of variable '{type(input_values)}' is not supported")
 
         if not isinstance(input_values, np.ndarray):
             input_values = np.array(input_values)
 
-        cast_values = cast("NDArray[np.bool]", input_values)
+        cast_values = cast("NDArray[np.bool_]", input_values)
         if cast_values.size == 0:
             raise ValueError("Empty input value")
 
         return cast_values
 
-    def set_variable_type(self, input_values: NDArray[np.bool]) -> VariableType:
+    def set_variable_type(self, input_values: NDArray[np.bool_]) -> VariableType:
         var_type = None
-        unique_values: NDArray[np.bool] = np.unique(input_values)
+        unique_values: NDArray[np.bool_] = np.unique(input_values)
 
         if np.all(np.isin(unique_values, [0, 1])):
             var_type = VariableType.BINARY
