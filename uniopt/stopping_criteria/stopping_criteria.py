@@ -6,6 +6,6 @@ class StoppingCriteria:
         self.logger = Logger()
 
     def run(self) -> bool:
-        self._logger.log(name_file=__name__, texto=f"Running {__name__}")
+        self.logger.log(name_file=__name__, texto=f"Running {__name__}")
 
         return False

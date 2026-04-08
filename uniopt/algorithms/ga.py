@@ -28,7 +28,7 @@ class GAOptimizer(BaseOptimizer):
         self.evaluate_population()
 
     def evaluate_population(self):
-        self.solutions = [
+        self.solutions = [  # type: ignore
             (sol, self.optimization_context.evaluate_solution(sol)) for sol in self.population
         ]
         self.solutions.sort(key=lambda x: x[1])

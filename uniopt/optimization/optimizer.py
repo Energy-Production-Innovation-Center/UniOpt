@@ -53,7 +53,7 @@ class BaseOptimizer(ABC):
         if isinstance(optimization_context, OptimizationContext):
             pass
         elif isinstance(optimization_context, dict):
-            optimization_context = OptimizationContext(  # type: ignore
+            optimization_context = OptimizationContext(
                 **cast("dict[str, Any]", optimization_context)
             )
         else:
