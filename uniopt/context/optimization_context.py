@@ -24,7 +24,7 @@ class OptimizationContext:
     )
     ALLOWED_OF_RESULTS: tuple[type, type, type] = (int, float, np.float64)
 
-    def __init__(  # noqa: PLR0913
+    def __init__(  # noqa: PLR0913, PLR0917
         self,
         bounds: Any,
         target: str = "min",
@@ -32,7 +32,7 @@ class OptimizationContext:
         permutation: bool = False,
         weights: NDArray[np.float64] | None = None,
         log_path: str | None = None,
-        initial_solution: SolutionType | None = None,
+        initial_solution: SolutionType | None = None,  # type: ignore
         seed: int | None = None,
         logger: Logger | None = None,
         **kwargs: Any,
@@ -45,7 +45,7 @@ class OptimizationContext:
             weights if weights is not None else np.ones(number_objectives)
         )
         self.log_path: str | None = log_path
-        self.initial_solution: SolutionType | None = initial_solution
+        self.initial_solution: SolutionType | None = initial_solution  # type: ignore
         self.seed: int = self.set_seed(seed)
         self.rng: Generator = np.random.default_rng(seed=self.seed * 2)
         self.logger: Logger = Logger() if logger is None else logger
@@ -58,7 +58,7 @@ class OptimizationContext:
         return bounds
 
     # TODO: Include the generation of other types
-    def generate_solution(self) -> SolutionType:
+    def generate_solution(self) -> SolutionType:  # type: ignore
         """Generate a random solution based on bounds."""
         if self.permutation:
             solution = self.bounds.input_values.astype(np.bool_)
@@ -117,7 +117,7 @@ class OptimizationContext:
             raise ValueError("The number of objectives must be greater than zero")
 
     @abstractmethod
-    def obj_func(self, solution: SolutionType) -> tuple[np.float64, ResultsType]:
+    def obj_func(self, solution: SolutionType) -> tuple[np.float64, ResultsType]:  # type: ignore
         """Objective function to be defined by subclasses.
 
         Args:

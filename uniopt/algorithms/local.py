@@ -2,16 +2,22 @@ import time
 from collections.abc import Generator
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import Manager, cpu_count, get_start_method
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 from numpy.random import Generator as RandomGenerator
-from psutil import Process, virtual_memory
 from typing_extensions import override
 
 from uniopt.context.optimization_context import OptimizationContext
 from uniopt.optimization.optimizer import BaseOptimizer
 from uniopt.utils.custom_types import ResultsType, SolutionType
+from uniopt.utils.multiprocessing import (
+    can_use_global_pool,
+    check_available_memory,
+    check_multiprocessing_scaling,
+    divide_evenly,
+    get_max_processes,
+)
 
 if TYPE_CHECKING:
     from queue import Queue
@@ -20,7 +26,7 @@ if TYPE_CHECKING:
 
 
 class LOCALOptimizer(BaseOptimizer):
-    def __init__(  # noqa: PLR0913
+    def __init__(  # noqa: PLR0913, PLR0917
         self,
         optimization_context: OptimizationContext,
         population_size: int = 1,
@@ -48,7 +54,7 @@ class LOCALOptimizer(BaseOptimizer):
         self._logger: Logger = self.optimization_context.logger
 
         # Check whether to enable auto scaling and multiprocessing
-        self.max_processes: int = self._get_max_processes()
+        self.max_processes: int = get_max_processes()
         self.auto_scaling: bool = n_processes is None
         self.n_processes: int = (
             min(cpu_count() - 1, self.max_processes) if n_processes is None else n_processes
@@ -196,102 +202,6 @@ class LOCALOptimizer(BaseOptimizer):
         )
         return no_improve_swap_max
 
-    def _divide_evenly(self, n: int, div: int) -> list[int]:
-        """Divide a integer `n` into `div` almost equal parts.
-
-        Args:
-            n (int): Numerator.
-            div (int): Denominator.
-
-        Returns:
-            list[int]: `div` batches that sum up to `n`.
-        """
-        return [n // div + (1 if x < n % div else 0) for x in range(div)]
-
-    def _get_max_processes(self) -> int:
-        """Based on the current working set and the total available memory at the time, estimate how
-        many parallel processes at most could be running.
-
-        Returns:
-            int: Estimated maximum multiprocessing level.
-        """
-        current_memory = int(Process().memory_info().rss)
-        available_memory = int(virtual_memory().available)
-        max_processes = int(
-            available_memory / (current_memory * self._get_memory_increase_factor())
-        )
-        return max(1, max_processes)
-
-    def _get_memory_increase_factor(self) -> float:
-        """Get the approximate percentage in which memory will grow. Larger models tend to use more
-        memory, so they should have a greater weight.
-
-        Returns:
-            float: Estimated memory grow factor.
-        """
-        if get_start_method() == "spawn":
-            return ((3 * self.models_num / 4) + 998.25) / 999
-        return 0.6  # fork() uses Copy-on-Write, memory usage is basically constant
-
-    def _check_available_memory(self, pool: ProcessPoolExecutor) -> Literal[-1, 0, 1]:
-        """Check whether the host machine has enough memory to continue the optimization methods.
-
-        Args:
-            pool (ProcessPoolExecutor): Current pool executor to abort tasks in case of no memory.
-
-        Raises:
-            MemoryError: if memory usage is above 99%.
-
-        Returns:
-            Literal[-1, 0, 1]: `-1` if multiprocessing level should decrease, `0` if it should
-            remain the same, `1` if it should increase.
-        """
-        used_percent = float(virtual_memory().percent)
-        if used_percent >= 99:  # noqa: PLR2004
-            self._logger.log_error("Memory usage is above 99%, aborting!")
-            for process in pool._processes.values():
-                process.kill()
-            pool.shutdown(cancel_futures=True)
-            raise MemoryError(
-                "No available memory to continue, consider lowering "
-                "'optimization_method/n_processes' value"
-            )
-        if used_percent >= 90:  # noqa: PLR2004
-            return -1
-        if used_percent <= 50:  # noqa: PLR2004
-            return 1
-        return 0
-
-    def _check_multiprocessing_scaling(self, pool: ProcessPoolExecutor):
-        """Dynamically increase or decrease `n_processes` value based on current host machine
-        resources usage.
-
-        Args:
-            pool (ProcessPoolExecutor): Current pool executor to abort tasks in case of no memory.
-        """
-        if self.auto_scaling:
-            process_scaling = self._check_available_memory(pool)
-            if process_scaling != 0:
-                new_value = self.n_processes + process_scaling
-                if (new_value > 1) and (new_value < cpu_count()):
-                    self.n_processes = new_value
-                    self._logger.log_warning(f"Adjusting number of processes to {self.n_processes}")
-
-    def _can_use_global_pool(self, log: bool = False) -> bool:
-        """Check whether there'll be sufficient resources to use the memory-hungry global pool for
-        better performance.
-
-        Args:
-            log (bool, optional): Whether to log a message. Defaults to False.
-
-        Returns:
-            bool: Whether the global pool should be used.
-        """
-        result = cpu_count() < int(self.max_processes / (1 + abs(self.n_swaps)))
-        if log:
-            self._logger.log_debug(f"Using {'global' if result else 'local'} process pool")
-        return result
-
     @override
     def evolve(self) -> Generator[ResultsType]:
         generator: Generator[ResultsType]
@@ -429,7 +339,7 @@ class LOCALOptimizer(BaseOptimizer):
         # Spawn more seeds using the main thread Generator
         # This ensures that each process will generate different solutions
         seeds = self.rng.spawn(n_processes)
-        n_repeats = self._divide_evenly(10, n_processes)
+        n_repeats = divide_evenly(10, n_processes)
         args: list[tuple[RandomGenerator, int, dict[str, Any] | None]] = []
         for i in range(n_processes):
             args.append((seeds[i], n_repeats[i], global_context))
@@ -439,14 +349,23 @@ class LOCALOptimizer(BaseOptimizer):
         self.solutions = []
 
         with ProcessPoolExecutor() as local_pool:
-            pool = global_pool if self._can_use_global_pool(True) else local_pool
+            pool = (
+                global_pool
+                if can_use_global_pool(
+                    self.max_processes,
+                    self.n_swaps,
+                    self._logger,
+                    True,
+                )
+                else local_pool
+            )
             # Spawn all processes at once
             _ = pool.map(self._process_temperature, args)
             # Consume the shared queue until all processes have finished
             best_solutions: list[tuple[SolutionType, np.float64]] = []
             finished: int = 0
             while finished < n_processes:
-                _ = self._check_available_memory(pool)
+                _ = self._check_available_memory(self._logger, pool)
                 sol_candidate, of_candidate, results = self._shared_queue.get()
                 if sol_candidate is None:
                     finished += 1
@@ -459,7 +378,12 @@ class LOCALOptimizer(BaseOptimizer):
                         best_solutions.sort(key=lambda x: x[1], reverse=True)
                     yield None, results
                     solutions.append((sol_candidate, of_candidate))
-            self._check_multiprocessing_scaling(pool)
+            check_multiprocessing_scaling(
+                self.auto_scaling,
+                self.n_processes,
+                self._logger,
+                pool,
+            )
 
         self.solutions = solutions  # restore saved solutions to class variable
         yield best_solutions, None
@@ -594,13 +518,21 @@ class LOCALOptimizer(BaseOptimizer):
                     )
 
             with ProcessPoolExecutor() as local_pool:
-                pool = global_pool if self._can_use_global_pool() else local_pool
+                pool = (
+                    global_pool
+                    if can_use_global_pool(
+                        self.max_processes,
+                        self.n_swaps,
+                        self._logger,
+                    )
+                    else local_pool
+                )
                 # Spawn all processes at once
                 _ = pool.map(self._process_local_search, args)
                 # Consume the shared queue until all processes have finished
                 finished: int = 0
                 while finished < self.n_processes:
-                    _ = self._check_available_memory(pool)
+                    _ = check_available_memory(self._logger, pool)
                     sol_candidate, of_candidate, results = self._shared_queue.get()
                     if sol_candidate is None:
                         finished += 1
@@ -618,7 +550,12 @@ class LOCALOptimizer(BaseOptimizer):
                             if of_candidate < best_of:
                                 best_sol = sol_candidate
                                 best_of = of_candidate
-                self._check_multiprocessing_scaling(pool)
+                check_multiprocessing_scaling(
+                    self.auto_scaling,
+                    self.n_processes,
+                    self._logger,
+                    pool,
+                )
 
         # Restore saved solutions to class variable
         self.solutions = solutions
